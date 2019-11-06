@@ -1,0 +1,114 @@
+From 5c67e4f83d3c80ef38b71f1e5edb679b69459cef Mon Sep 17 00:00:00 2001
+From: TERVER AOSU <terveraosu@gmail.com>
+Date: Wed, 6 Nov 2019 14:15:19 +0100
+Subject: [PATCH] Create Patch File
+
+---
+ src/DataManipulator.ts | 34 ++++++++++++++++++++++++----------
+ src/Graph.tsx          | 16 +++++++++-------
+ 2 files changed, 33 insertions(+), 17 deletions(-)
+
+diff --git a/src/DataManipulator.ts b/src/DataManipulator.ts
+index f6b15ff..41c4925 100644
+--- a/src/DataManipulator.ts
++++ b/src/DataManipulator.ts
+@@ -1,20 +1,34 @@
+ import { ServerRespond } from './DataStreamer';
+ 
+ export interface Row {
+-  stock: string,
+-  top_ask_price: number,
++  // I modified the Row interface to reflect the structure of the returned object of the generateRow function
++  price_abc: number,
++  price_def: number,
++  ratio: number,
++  upper_bound: number,
++  lower_bound: number,
++  trigger_alert: number | undefined,
+   timestamp: Date,
+ }
+ 
+ 
+ export class DataManipulator {
+-  static generateRow(serverResponds: ServerRespond[]): Row[] {
+-    return serverResponds.map((el: any) => {
+-      return {
+-        stock: el.stock,
+-        top_ask_price: el.top_ask && el.top_ask.price || 0,
+-        timestamp: el.timestamp,
+-      };
+-    })
++  // I modified the return value to be an array of a single Row object.
++  // Since we are more interested in the ratio, the ratio is computed and returned with other properties.
++  static generateRow(serverRespond: ServerRespond[]): Row {
++    const priceABC = (serverRespond[0].top_ask.price + serverRespond[0].top_bid.price) / 2;
++    const priceDEF = (serverRespond[1].top_ask.price + serverRespond[1].top_bid.price) / 2;
++    const ratio = priceABC / priceDEF;
++    const upperBound = 1 + 0.05;
++    const lowerBound = 1 + 0.05;
++    return {
++      price_abc: priceABC,
++      price_def: priceDEF,
++      ratio,
++      timestamp: serverRespond[0].timestamp > serverRespond[1].timestamp ? serverRespond[0].timestamp : serverRespond[1].timestamp, 
++      upper_bound: upperBound,
++      lower_bound: lowerBound,
++      trigger_alert: (ratio > upperBound || ratio < lowerBound) ? ratio : undefined,
++    }
+   }
+ }
+diff --git a/src/Graph.tsx b/src/Graph.tsx
+index 411feba..9ba60ed 100644
+--- a/src/Graph.tsx
++++ b/src/Graph.tsx
+@@ -21,13 +21,13 @@ class Graph extends Component<IProps, {}> {
+   componentDidMount() {
+     // Get element from the DOM.
+     const elem = document.getElementsByTagName('perspective-viewer')[0] as unknown as PerspectiveViewerElement;
+-
++    // I modified the schema object so as to reflect how we want to configure the Perspective table view of our graph.
+     const schema = {
+       price_abc: 'float',
+       price_def: 'float',
+       ratio: 'float',
+-      upper_bond: 'float',
+-      lower_bond: 'float',
++      upper_bound: 'float',
++      lower_bound: 'float',
+       trigger_alert: 'float',
+       timestamp: 'date',
+     };
+@@ -37,24 +37,26 @@ class Graph extends Component<IProps, {}> {
+     }
+     if (this.table) {
+       // Load the `table` in the `<perspective-viewer>` DOM reference.
++      // I modified/remove attributes from the element to reflect how our graph should appear.
+       elem.load(this.table);
+       elem.setAttribute('view', 'y_line');
+       elem.setAttribute('row-pivots', '["timestamp"]');
+-      elem.setAttribute('columns', '["ration", "lower_bond", "upper_bond", "trigger_alert"]');
++      elem.setAttribute('columns', '["ratio", "lower_bound", "upper_bound", "trigger_alert"]');
+       elem.setAttribute('aggregates', JSON.stringify({
+         price_abc: 'avg',
+         price_def: 'avg',
+         ratio: 'avg',
+-        upper_bond: 'avg',
+-        lower_bond: 'avg',
++        upper_bound: 'avg',
++        lower_bound: 'avg',
+         trigger_alert: 'avg',
+-        timestamp: 'distinct_count',
++        timestamp: 'distinct count',
+         }));
+     }
+   }
+ 
+   componentDidUpdate() {
+     if (this.table) {
++      // I made the parameter for the update table method to be an array of object
+       this.table.update([
+         DataManipulator.generateRow(this.props.data),
+       ]);
+-- 
+2.17.1
+
