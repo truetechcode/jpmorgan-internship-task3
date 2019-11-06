@@ -21,13 +21,13 @@ class Graph extends Component<IProps, {}> {
   componentDidMount() {
     // Get element from the DOM.
     const elem = document.getElementsByTagName('perspective-viewer')[0] as unknown as PerspectiveViewerElement;
-
+    // I modified the schema object so as to reflect how we want to configure the Perspective table view of our graph.
     const schema = {
       price_abc: 'float',
       price_def: 'float',
       ratio: 'float',
-      upper_bond: 'float',
-      lower_bond: 'float',
+      upper_bound: 'float',
+      lower_bound: 'float',
       trigger_alert: 'float',
       timestamp: 'date',
     };
@@ -37,24 +37,26 @@ class Graph extends Component<IProps, {}> {
     }
     if (this.table) {
       // Load the `table` in the `<perspective-viewer>` DOM reference.
+      // I modified/remove attributes from the element to reflect how our graph should appear.
       elem.load(this.table);
       elem.setAttribute('view', 'y_line');
       elem.setAttribute('row-pivots', '["timestamp"]');
-      elem.setAttribute('columns', '["ration", "lower_bond", "upper_bond", "trigger_alert"]');
+      elem.setAttribute('columns', '["ratio", "lower_bound", "upper_bound", "trigger_alert"]');
       elem.setAttribute('aggregates', JSON.stringify({
         price_abc: 'avg',
         price_def: 'avg',
         ratio: 'avg',
-        upper_bond: 'avg',
-        lower_bond: 'avg',
+        upper_bound: 'avg',
+        lower_bound: 'avg',
         trigger_alert: 'avg',
-        timestamp: 'distinct_count',
+        timestamp: 'distinct count',
         }));
     }
   }
 
   componentDidUpdate() {
     if (this.table) {
+      // I made the parameter for the update table method to be an array of object
       this.table.update([
         DataManipulator.generateRow(this.props.data),
       ]);
